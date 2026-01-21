@@ -1,0 +1,677 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Vocab</title>
+  <style>
+    :root{--line:#eaeaea;--txt:#111;--mut:#666}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:var(--txt)}
+    header{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--line)}
+    nav{display:flex;gap:8px;flex-wrap:wrap}
+    .tab{border:1px solid var(--line);background:#fff;padding:8px 10px;border-radius:10px;cursor:pointer}
+    .tab.active{border-color:var(--txt)}
+    main{max-width:900px;margin:0 auto;padding:16px}
+    .card{border:1px solid var(--line);border-radius:14px;padding:14px}
+    input,textarea,button{font:inherit}
+    input,textarea{width:100%;border:1px solid var(--line);border-radius:12px;padding:10px 12px;outline:none}
+    textarea{min-height:90px;resize:vertical}
+    .row{display:grid;grid-template-columns:1fr 1.4fr;gap:10px}
+    @media(max-width:720px){.row{grid-template-columns:1fr}}
+    .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    .btn{border:1px solid var(--txt);background:var(--txt);color:#fff;padding:9px 12px;border-radius:12px;cursor:pointer}
+    .btn.alt{border:1px solid var(--line);background:#f4f4f4;color:var(--txt)}
+    .btn:disabled{opacity:.5;cursor:not-allowed}
+    .small{font-size:13px;color:var(--mut)}
+    .list{margin-top:14px;border-top:1px solid var(--line)}
+    .item{padding:12px 0;border-bottom:1px solid var(--line);display:grid;grid-template-columns:1fr auto;gap:10px}
+    .word{font-weight:700}
+    .def{color:var(--mut);margin-top:4px;white-space:pre-wrap}
+
+    /* Quiz */
+    .quizTop{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}
+    .pill{border:1px solid var(--line);border-radius:999px;padding:6px 10px;font-size:13px;color:var(--mut)}
+    .quizWord{font-size:clamp(28px,4vw,44px);font-weight:800;text-align:center;margin:10px 0 4px}
+    .center{text-align:center}
+    .quizDef{display:none;border-top:1px solid var(--line);padding-top:12px;margin-top:6px;color:var(--mut);white-space:pre-wrap}
+
+    /* Stats */
+    .stats{
+      margin-top:14px;
+      border-top:1px solid var(--line);
+      padding-top:14px;
+      display:grid;
+      gap:10px;
+    }
+    .statsGrid{
+      display:grid;
+      grid-template-columns:repeat(4, minmax(0,1fr));
+      gap:10px;
+    }
+    @media(max-width:720px){.statsGrid{grid-template-columns:repeat(2, minmax(0,1fr));}}
+    .statBox{
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:12px;
+    }
+    .statVal{font-weight:800;font-size:22px;line-height:1.1}
+    .statLbl{font-size:13px;color:var(--mut);margin-top:6px}
+  </style>
+</head>
+<body>
+<header>
+  <div style="font-weight:700;">Vocab</div>
+  <nav>
+    <button class="tab active" id="tab1" type="button">Menu 1 — Mots</button>
+    <button class="tab" id="tab2" type="button">Menu 2 — Aléatoire</button>
+    <button class="tab" id="tab3" type="button">Menu 3 — Non <span id="nvBadge" class="small"></span></button>
+  </nav>
+</header>
+
+<main>
+  <!-- MENU 1 -->
+  <section class="card" id="view1">
+    <!-- Recherche -->
+    <div style="margin-bottom:12px;">
+      <div class="small">Rechercher</div>
+      <input id="searchInput" placeholder="Tape un mot ou un bout de définition…" />
+    </div>
+
+    <!-- Ajout -->
+    <div class="row">
+      <div>
+        <div class="small">Mot</div>
+        <input id="wordInput" placeholder="ex : persévérance" />
+      </div>
+      <div>
+        <div class="small">Définition</div>
+        <textarea id="defInput" placeholder="Écris la définition ici…"></textarea>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn" id="addBtn" type="button">Ajouter</button>
+      <button class="btn alt" id="clearBtn" type="button">Tout effacer</button>
+      <span class="small" id="countInfo"></span>
+    </div>
+
+    <div class="list" id="list"></div>
+
+    <!-- STATS -->
+    <div class="stats">
+      <div class="small" style="font-weight:650;color:#111;">Statistiques</div>
+
+      <div class="statsGrid">
+        <div class="statBox">
+          <div class="statVal" id="stTotalWords">0</div>
+          <div class="statLbl">Mots au total</div>
+        </div>
+        <div class="statBox">
+          <div class="statVal" id="stNV">0</div>
+          <div class="statLbl">En “Non”</div>
+        </div>
+        <div class="statBox">
+          <div class="statVal" id="stMastered">0</div>
+          <div class="statLbl">Maîtrisés</div>
+        </div>
+        <div class="statBox">
+          <div class="statVal" id="stMasteryRate">0%</div>
+          <div class="statLbl">Taux de maîtrise</div>
+        </div>
+      </div>
+
+      <div class="statsGrid">
+        <div class="statBox">
+          <div class="statVal" id="stAllAcc">0%</div>
+          <div class="statLbl">Précision globale</div>
+        </div>
+        <div class="statBox">
+          <div class="statVal" id="stAllAttempts">0</div>
+          <div class="statLbl">Réponses (total)</div>
+        </div>
+        <div class="statBox">
+          <div class="statVal" id="stM2Acc">0%</div>
+          <div class="statLbl">Précision Menu 2</div>
+        </div>
+        <div class="statBox">
+          <div class="statVal" id="stM3Acc">0%</div>
+          <div class="statLbl">Précision Menu 3</div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn alt" id="resetStatsBtn" type="button">Réinitialiser les stats</button>
+      </div>
+
+      <div class="small" id="statsNote"></div>
+    </div>
+  </section>
+
+  <!-- MENU 2 -->
+  <section class="card" id="view2" style="display:none;">
+    <div class="quizTop">
+      <div class="pill" id="progress2">0 / 0</div>
+      <div class="pill" id="pillM2">Menu 2 — Oui: 0 | Non: 0</div>
+    </div>
+
+    <div class="quizWord" id="quizWord2">Ajoute des mots</div>
+    <div class="center small" id="quizHint2"></div>
+
+    <div class="quizDef" id="quizDef2"></div>
+
+    <div class="actions" style="justify-content:center;">
+      <button class="btn" id="okBtn2" type="button" disabled>Oui</button>
+      <button class="btn alt" id="noBtn2" type="button" disabled>Non</button>
+      <button class="btn" id="nextBtn2" type="button" style="display:none;">Suivant</button>
+    </div>
+
+    <div class="actions" style="justify-content:space-between;">
+      <button class="btn alt" id="restartBtn2" type="button">Recommencer</button>
+      <button class="btn alt" id="backBtn2" type="button">Retour Menu 1</button>
+    </div>
+  </section>
+
+  <!-- MENU 3 -->
+  <section class="card" id="view3" style="display:none;">
+    <div class="quizTop">
+      <div class="pill" id="progress3">0 / 0</div>
+      <div class="pill" id="pillM3">Menu 3 — Oui: 0 | Non: 0</div>
+    </div>
+
+    <div class="quizWord" id="quizWord3">Aucun “Non”</div>
+    <div class="center small" id="quizHint3"></div>
+
+    <div class="quizDef" id="quizDef3"></div>
+
+    <div class="actions" style="justify-content:center;">
+      <button class="btn" id="okBtn3" type="button" disabled>Oui</button>
+      <button class="btn alt" id="noBtn3" type="button" disabled>Non</button>
+      <button class="btn" id="nextBtn3" type="button" style="display:none;">Suivant</button>
+    </div>
+
+    <div class="actions" style="justify-content:space-between;">
+      <button class="btn alt" id="restartBtn3" type="button">Recommencer</button>
+      <button class="btn alt" id="clearNVBtn" type="button">Vider “Non”</button>
+      <button class="btn alt" id="backBtn3" type="button">Retour Menu 1</button>
+    </div>
+  </section>
+</main>
+
+<script>
+  // ---- Storage keys ----
+  const KEY_WORDS = "vocab_words_v5";
+  const KEY_NV    = "vocab_non_v5";
+  const KEY_STATS = "vocab_stats_v2";
+
+  // ---- Data ----
+  let words = loadWords();
+  let nonValides = loadNonValides();
+  let stats = loadStats();
+
+  function uid(){
+    return Math.random().toString(36).slice(2,10)+Date.now().toString(36);
+  }
+
+  function loadWords(){
+    try{
+      const r = localStorage.getItem(KEY_WORDS);
+      if(!r) return [];
+      const a = JSON.parse(r);
+      if(!Array.isArray(a)) return [];
+      return a.map(x=>({
+        id:String(x.id||uid()),
+        word:String(x.word||"").trim(),
+        def:String(x.def||"").trim()
+      })).filter(x=>x.word);
+    }catch{return []}
+  }
+  function saveWords(){ localStorage.setItem(KEY_WORDS, JSON.stringify(words)); }
+
+  function loadNonValides(){
+    try{
+      const r = localStorage.getItem(KEY_NV);
+      if(!r) return new Set();
+      const a = JSON.parse(r);
+      if(!Array.isArray(a)) return new Set();
+      return new Set(a.map(String));
+    }catch{return new Set()}
+  }
+  function saveNonValides(){
+    localStorage.setItem(KEY_NV, JSON.stringify(Array.from(nonValides)));
+    updateNVBadge();
+    renderStats();
+  }
+
+  function emptyStats(){
+    return {
+      all_ok:0, all_no:0,
+      m2_ok:0, m2_no:0,
+      m3_ok:0, m3_no:0,
+      created_at: Date.now()
+    };
+  }
+  function loadStats(){
+    try{
+      const r = localStorage.getItem(KEY_STATS);
+      if(!r) return emptyStats();
+      const s = JSON.parse(r);
+      return {
+        all_ok: Number(s.all_ok||0),
+        all_no: Number(s.all_no||0),
+        m2_ok:  Number(s.m2_ok||0),
+        m2_no:  Number(s.m2_no||0),
+        m3_ok:  Number(s.m3_ok||0),
+        m3_no:  Number(s.m3_no||0),
+        created_at: Number(s.created_at||Date.now())
+      };
+    }catch{ return emptyStats(); }
+  }
+  function saveStats(){
+    localStorage.setItem(KEY_STATS, JSON.stringify(stats));
+    updatePills();
+    renderStats();
+  }
+  function incStat(which){
+    stats[which] = (stats[which]||0) + 1;
+    if(which.endsWith("_ok")) stats.all_ok++;
+    if(which.endsWith("_no")) stats.all_no++;
+    saveStats();
+  }
+
+  // ---- Elements ----
+  const tab1=document.getElementById("tab1");
+  const tab2=document.getElementById("tab2");
+  const tab3=document.getElementById("tab3");
+  const nvBadge=document.getElementById("nvBadge");
+
+  const view1=document.getElementById("view1");
+  const view2=document.getElementById("view2");
+  const view3=document.getElementById("view3");
+
+  const searchInput=document.getElementById("searchInput");
+  const wordInput=document.getElementById("wordInput");
+  const defInput=document.getElementById("defInput");
+  const addBtn=document.getElementById("addBtn");
+  const clearBtn=document.getElementById("clearBtn");
+  const listEl=document.getElementById("list");
+  const countInfo=document.getElementById("countInfo");
+
+  const progress2=document.getElementById("progress2");
+  const pillM2=document.getElementById("pillM2");
+  const quizWord2=document.getElementById("quizWord2");
+  const quizHint2=document.getElementById("quizHint2");
+  const quizDef2=document.getElementById("quizDef2");
+  const okBtn2=document.getElementById("okBtn2");
+  const noBtn2=document.getElementById("noBtn2");
+  const nextBtn2=document.getElementById("nextBtn2");
+  const restartBtn2=document.getElementById("restartBtn2");
+  const backBtn2=document.getElementById("backBtn2");
+
+  const progress3=document.getElementById("progress3");
+  const pillM3=document.getElementById("pillM3");
+  const quizWord3=document.getElementById("quizWord3");
+  const quizHint3=document.getElementById("quizHint3");
+  const quizDef3=document.getElementById("quizDef3");
+  const okBtn3=document.getElementById("okBtn3");
+  const noBtn3=document.getElementById("noBtn3");
+  const nextBtn3=document.getElementById("nextBtn3");
+  const restartBtn3=document.getElementById("restartBtn3");
+  const backBtn3=document.getElementById("backBtn3");
+  const clearNVBtn=document.getElementById("clearNVBtn");
+
+  // Stats elements
+  const stTotalWords=document.getElementById("stTotalWords");
+  const stNV=document.getElementById("stNV");
+  const stMastered=document.getElementById("stMastered");
+  const stMasteryRate=document.getElementById("stMasteryRate");
+  const stAllAcc=document.getElementById("stAllAcc");
+  const stAllAttempts=document.getElementById("stAllAttempts");
+  const stM2Acc=document.getElementById("stM2Acc");
+  const stM3Acc=document.getElementById("stM3Acc");
+  const resetStatsBtn=document.getElementById("resetStatsBtn");
+  const statsNote=document.getElementById("statsNote");
+
+  // ---- Navigation ----
+  function switchTo(menu){
+    view1.style.display = menu===1?"":"none";
+    view2.style.display = menu===2?"":"none";
+    view3.style.display = menu===3?"":"none";
+    tab1.classList.toggle("active",menu===1);
+    tab2.classList.toggle("active",menu===2);
+    tab3.classList.toggle("active",menu===3);
+    if(menu===2) startQuizAll();
+    if(menu===3) startQuizNV();
+  }
+  tab1.onclick=()=>switchTo(1);
+  tab2.onclick=()=>switchTo(2);
+  tab3.onclick=()=>switchTo(3);
+  backBtn2.onclick=()=>switchTo(1);
+  backBtn3.onclick=()=>switchTo(1);
+
+  function updateNVBadge(){
+    nvBadge.textContent = nonValides.size ? `(${nonValides.size})` : "";
+  }
+
+  // ---- Menu 1: list + search ----
+  function renderList(){
+    const q = searchInput.value.trim().toLowerCase();
+    listEl.innerHTML="";
+
+    const filtered = words.filter(it=>{
+      if(!q) return true;
+      return it.word.toLowerCase().includes(q) || it.def.toLowerCase().includes(q);
+    });
+
+    countInfo.textContent = `${filtered.length} / ${words.length} mot(s)`;
+
+    if(!filtered.length){
+      const d=document.createElement("div");
+      d.className="small";
+      d.style.padding="12px 0";
+      d.textContent = q ? "Aucun résultat." : "Ajoute un mot et sa définition ci-dessus.";
+      listEl.appendChild(d);
+      return;
+    }
+
+    filtered.forEach((it)=>{
+      const row=document.createElement("div");
+      row.className="item";
+
+      const left=document.createElement("div");
+      const w=document.createElement("div");
+      w.className="word";
+      w.textContent=it.word;
+
+      const def=document.createElement("div");
+      def.className="def";
+      def.textContent=it.def||"(pas de définition)";
+      left.append(w,def);
+
+      const right=document.createElement("div");
+      right.className="actions";
+      right.style.marginTop="0";
+
+      const edit=document.createElement("button");
+      edit.className="btn alt";
+      edit.textContent="Modifier";
+      edit.onclick=()=>{
+        wordInput.value=it.word;
+        defInput.value=it.def;
+        const keepId=it.id;
+        words = words.filter(w=>w.id!==it.id);
+        saveWords();
+        wordInput.dataset.keepId=keepId;
+        renderList();
+        renderStats();
+        wordInput.focus();
+      };
+
+      const del=document.createElement("button");
+      del.className="btn alt";
+      del.textContent="Supprimer";
+      del.onclick=()=>{
+        words = words.filter(w=>w.id!==it.id);
+        nonValides.delete(it.id);
+        saveWords();
+        saveNonValides();
+        renderList();
+        renderStats();
+      };
+
+      right.append(edit,del);
+      row.append(left,right);
+      listEl.appendChild(row);
+    });
+  }
+
+  searchInput.oninput = ()=>renderList();
+
+  addBtn.onclick=()=>{
+    const w=wordInput.value.trim();
+    const d=defInput.value.trim();
+    if(!w){wordInput.focus();return;}
+    const keepId=wordInput.dataset.keepId;
+    const id=keepId?keepId:uid();
+    delete wordInput.dataset.keepId;
+    words.push({id,word:w,def:d});
+    saveWords();
+    wordInput.value="";defInput.value="";
+    renderList();
+    renderStats();
+    wordInput.focus();
+  };
+
+  clearBtn.onclick=()=>{
+    if(!words.length) return;
+    if(confirm("Tout effacer ? (mots + Non + stats)")){
+      words=[];
+      nonValides.clear();
+      stats = emptyStats();
+      saveWords();
+      saveNonValides();
+      saveStats();
+      renderList();
+      renderStats();
+    }
+  };
+
+  // ---- Quiz helpers ----
+  function shuffle(a){
+    for(let i=a.length-1;i>0;i--){
+      const j=Math.floor(Math.random()*(i+1));
+      [a[i],a[j]]=[a[j],a[i]];
+    }
+    return a;
+  }
+  function getById(id){ return words.find(w=>w.id===id)||null; }
+
+  function cleanupNV(){
+    let changed=false;
+    for(const id of Array.from(nonValides)){
+      if(!getById(id)){ nonValides.delete(id); changed=true; }
+    }
+    if(changed) saveNonValides();
+  }
+
+  // ---- Menu 2 ----
+  let orderAll=[], iAll=0;
+
+  function startQuizAll(){
+    cleanupNV();
+    if(!words.length){
+      progress2.textContent="0 / 0";
+      quizWord2.textContent="Ajoute des mots";
+      quizHint2.textContent="Va au Menu 1 pour créer ta liste.";
+      okBtn2.disabled=true; noBtn2.disabled=true;
+      nextBtn2.style.display="none"; quizDef2.style.display="none";
+      updatePills();
+      return;
+    }
+    orderAll=shuffle(words.map(w=>w.id));
+    iAll=0;
+    okBtn2.disabled=false; noBtn2.disabled=false;
+    showCurrentAll();
+    updatePills();
+  }
+
+  function showCurrentAll(){
+    if(iAll>=orderAll.length){
+      progress2.textContent=`${orderAll.length} / ${orderAll.length}`;
+      quizWord2.textContent="Terminé ✅";
+      quizHint2.textContent="Recommencer pour remélanger.";
+      okBtn2.disabled=true; noBtn2.disabled=true;
+      nextBtn2.style.display="none"; quizDef2.style.display="none";
+      return;
+    }
+    const it=getById(orderAll[iAll]);
+    if(!it){iAll++;return showCurrentAll();}
+    progress2.textContent=`${iAll+1} / ${orderAll.length}`;
+    quizWord2.textContent=it.word;
+    quizDef2.textContent=it.def||"(pas de définition)";
+    quizDef2.style.display="none";
+    quizHint2.textContent="Oui → mot suivant | Non → affiche la définition (et ajoute au menu Non)";
+    nextBtn2.style.display="none";
+    okBtn2.disabled=false; noBtn2.disabled=false;
+  }
+
+  // Oui : avance et retire du menu Non si besoin
+  okBtn2.onclick=()=>{
+    incStat("m2_ok");
+    const id = orderAll[iAll];
+    nonValides.delete(id);
+    saveNonValides();
+    iAll++;
+    showCurrentAll();
+  };
+
+  // Non : affiche définition, ajoute au menu Non, mais Oui reste possible
+  noBtn2.onclick=()=>{
+    incStat("m2_no");
+    const id=orderAll[iAll];
+    if(id) nonValides.add(id);
+    saveNonValides();
+
+    quizDef2.style.display="block";
+    quizHint2.textContent="Définition affichée. Tu peux maintenant répondre Oui, ou passer au suivant.";
+    okBtn2.disabled=false;
+    noBtn2.disabled=true;
+    nextBtn2.style.display="";
+  };
+
+  nextBtn2.onclick=()=>{iAll++;showCurrentAll();};
+  restartBtn2.onclick=()=>startQuizAll();
+
+  // ---- Menu 3 ----
+  let orderNV=[], iNV=0;
+
+  function startQuizNV(){
+    cleanupNV();
+    const ids=Array.from(nonValides).filter(id=>getById(id));
+    if(!ids.length){
+      progress3.textContent="0 / 0";
+      quizWord3.textContent="Aucun “Non”";
+      quizHint3.textContent="Les mots marqués Non apparaîtront ici.";
+      okBtn3.disabled=true; noBtn3.disabled=true;
+      nextBtn3.style.display="none"; quizDef3.style.display="none";
+      updatePills();
+      renderStats();
+      return;
+    }
+    orderNV=shuffle(ids.slice());
+    iNV=0;
+    okBtn3.disabled=false; noBtn3.disabled=false;
+    showCurrentNV();
+    updatePills();
+    renderStats();
+  }
+
+  function showCurrentNV(){
+    while(iNV<orderNV.length && !nonValides.has(orderNV[iNV])) iNV++;
+    if(iNV>=orderNV.length){
+      orderNV=shuffle(Array.from(nonValides));
+      iNV=0;
+    }
+    const id=orderNV[iNV];
+    const it=getById(id);
+    if(!it){
+      nonValides.delete(id);
+      saveNonValides();
+      return startQuizNV();
+    }
+    progress3.textContent=`${iNV+1} / ${orderNV.length}`;
+    quizWord3.textContent=it.word;
+    quizDef3.textContent=it.def||"(pas de définition)";
+    quizDef3.style.display="none";
+    quizHint3.textContent="Oui → retire du menu Non | Non → affiche la définition";
+    nextBtn3.style.display="none";
+    okBtn3.disabled=false; noBtn3.disabled=false;
+    renderStats();
+  }
+
+  // Oui : valide => retire du menu Non
+  okBtn3.onclick=()=>{
+    incStat("m3_ok");
+    const id=orderNV[iNV];
+    nonValides.delete(id);
+    saveNonValides();
+    showCurrentNV();
+  };
+
+  // Non : affiche définition, Oui reste possible
+  noBtn3.onclick=()=>{
+    incStat("m3_no");
+    quizDef3.style.display="block";
+    quizHint3.textContent="Définition affichée. Tu peux maintenant répondre Oui, ou passer au suivant.";
+    okBtn3.disabled=false;
+    noBtn3.disabled=true;
+    nextBtn3.style.display="";
+  };
+
+  nextBtn3.onclick=()=>{iNV++;showCurrentNV();};
+  restartBtn3.onclick=()=>startQuizNV();
+
+  clearNVBtn.onclick=()=>{
+    if(!nonValides.size) return;
+    if(confirm("Vider la liste “Non” ?")){
+      nonValides.clear();
+      saveNonValides();
+      startQuizNV();
+    }
+  };
+
+  // ---- Stats rendering ----
+  function pct(ok, total){
+    if(total<=0) return 0;
+    return Math.round((ok/total)*100);
+  }
+
+  function updatePills(){
+    pillM2.textContent = `Menu 2 — Oui: ${stats.m2_ok} | Non: ${stats.m2_no}`;
+    pillM3.textContent = `Menu 3 — Oui: ${stats.m3_ok} | Non: ${stats.m3_no}`;
+  }
+
+  function renderStats(){
+    const total = words.length;
+    const nv = nonValides.size;
+    const mastered = Math.max(0, total - nv);
+    const masteryRate = total ? Math.round((mastered/total)*100) : 0;
+
+    const allAttempts = stats.all_ok + stats.all_no;
+    const allAcc = pct(stats.all_ok, allAttempts);
+
+    const m2Attempts = stats.m2_ok + stats.m2_no;
+    const m3Attempts = stats.m3_ok + stats.m3_no;
+
+    stTotalWords.textContent = String(total);
+    stNV.textContent = String(nv);
+    stMastered.textContent = String(mastered);
+    stMasteryRate.textContent = masteryRate + "%";
+
+    stAllAttempts.textContent = String(allAttempts);
+    stAllAcc.textContent = allAcc + "%";
+    stM2Acc.textContent = pct(stats.m2_ok, m2Attempts) + "%";
+    stM3Acc.textContent = pct(stats.m3_ok, m3Attempts) + "%";
+
+    const since = new Date(stats.created_at);
+    statsNote.textContent = `Stats enregistrées depuis : ${since.toLocaleDateString("fr-FR")}.`;
+  }
+
+  resetStatsBtn.onclick = ()=>{
+    if(confirm("Réinitialiser toutes les statistiques ?")){
+      stats = emptyStats();
+      saveStats();
+    }
+  };
+
+  // ---- Init ----
+  function init(){
+    updateNVBadge();
+    updatePills();
+    renderList();
+    renderStats();
+  }
+  init();
+</script>
+</body>
+</html>
